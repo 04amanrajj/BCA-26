@@ -1,0 +1,98 @@
+{
+  "data": [
+    {
+      "_id": "67670b577516852a023ea5ac",
+      "name": "Simple Thali",
+      "description": "Dal fry + daily veg + 5 chapati + papad + salad + butter milk + rice",
+      "price": 187.5,
+      "available": true,
+      "rating": 4.9,
+      "category": "Thali",
+      "image": "https://i.pinimg.com/736x/1d/f6/36/1df6362c66dd293cc90ef0ede65b3818.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b577516852a023ea5ae",
+      "name": "Special Thali",
+      "description": "Paneer butter masala + regular veg + butter paratha + jeera rice + dal fry + papad + salad + buttermilk",
+      "price": 225,
+      "available": true,
+      "rating": 4.7,
+      "category": "Thali",
+      "image": "https://i.pinimg.com/736x/25/0a/d8/250ad822320f0bc3c9f5fc4c64440a1b.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b577516852a023ea5b0",
+      "name": "Couple Thali",
+      "description": "Dal fry + daily veg + 5 chapati + papad + salad + butter milk + rice",
+      "price": 325,
+      "available": true,
+      "rating": 4.8,
+      "category": "Thali",
+      "image": "https://i.pinimg.com/736x/bc/54/5c/bc545c4796c7665529d55eae56116ceb.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b577516852a023ea5b2",
+      "name": "Jain Thali",
+      "description": "Gulab jamun + dal + rice + plain chapati + sabji + achar + papad + salad",
+      "price": 250,
+      "available": true,
+      "rating": 4.8,
+      "category": "Thali",
+      "image": "https://i.pinimg.com/736x/e3/f6/5d/e3f65d4d7d849cbd04f5c8167e544ea3.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b577516852a023ea5b4",
+      "name": "Green Salad",
+      "description": "A fresh salad made with green vegetables.",
+      "price": 50,
+      "available": true,
+      "rating": 4,
+      "category": "Salad",
+      "image": "https://i.pinimg.com/736x/98/5c/d7/985cd79f6e4363db0ab823741f1e8480.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b577516852a023ea5b6",
+      "name": "Kakdi Salad",
+      "description": "A refreshing cucumber salad.",
+      "price": 62.5,
+      "available": true,
+      "rating": 4.4,
+      "category": "Salad",
+      "image": "https://i.pinimg.com/736x/6c/a6/ae/6ca6ae79abb5ca98a3ecaf939eafffad.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b587516852a023ea5b8",
+      "name": "Tomato Salad",
+      "description": "Freshly chopped tomatoes with seasoning.",
+      "price": 62.5,
+      "available": false,
+      "rating": 4.8,
+      "category": "Salad",
+      "image": "https://i.pinimg.com/736x/7f/8c/49/7f8c49a67e92f0d80c3dfdfe7b888166.jpg",
+      "__v": 0
+    },
+    {
+      "_id": "67670b587516852a023ea5ba",
+      "name": "kachumber Salad",
+      "description": "A crisp and refreshing cucumber salad.",
+      "price": 75,
+      "available": true,
+      "rating": 4.8,
+      "category": "Salad",
+      "image": "https://i.pinimg.com/736x/86/40/6c/86406c0697eb63acb206202c257d1a85.jpg",
+      "__v": 0
+    }
+  ],
+  "metadata": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalitems": 68,
+    "itemsPerPage": 1000
+  }
+}
