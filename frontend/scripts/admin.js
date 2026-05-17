@@ -1,16 +1,21 @@
 import {
+  baseURL,
+  loading,
   navbar,
-  page_footer
+  page_footer,
+  stopLoading,
+  tostTopEnd,
 } from "../utils/utils.js";
-let baseURL="../restaurant-menu.json"
+const token = localStorage.getItem("token");
+
 async function getUserInfo() {
   try {
-    const userinfo = {
-      name: "Aman Raj",
-      role: "Admin",
-      phone: "9876543210",
-      email: "test-admin@mail.com",
-    };
+    loading();
+    const response = await axios.get(`${baseURL}/user`, {
+      headers: { Authorization: token },
+    });
+    const userinfo = response.data.message;
+    stopLoading();
 
     const userDiv = document.querySelector(".osahan-user-media");
     userDiv.innerHTML = `
@@ -20,13 +25,19 @@ async function getUserInfo() {
           alt="${userinfo.name}"
         />
         <div class="osahan-user-media-body">
-          <h6 class="mb-2">${userinfo.name
-      } <span class="badge text-bg-success">${userinfo.role}</span></h6>
+          <h6 class="mb-2">${
+            userinfo.name
+          } <span class="badge text-bg-success">${userinfo.role}</span></h6>
           <p class="mb-1">${userinfo.phone || ""}</p>
           <p>${userinfo.email || ""}</p>
         </div>`;
   } catch (error) {
+    stopLoading();
     console.error(error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message,
+    });
   }
 }
 getUserInfo();
@@ -36,9 +47,12 @@ async function getOrders(statusFilter = null) {
     const url = statusFilter
       ? `${baseURL}/admin/order?status=${statusFilter}`
       : `${baseURL}/admin/order`;
+
+    loading();
     const response = await axios.get(url, {
       headers: { Authorization: token },
     });
+    stopLoading();
     const orders = response.data;
 
     const userOrders = document.querySelector(".order-container");
@@ -70,8 +84,9 @@ async function getOrders(statusFilter = null) {
       const orderCard = document.createElement("div");
       orderCard.classList.add("order-card");
       orderCard.innerHTML = `
-        <h6><span class="badge text-bg-${statusClass}">${order.status
-        }</span> Order ${grammerfix} ${order.userName || "Unknown User"}</h6>
+        <h6><span class="badge text-bg-${statusClass}">${
+        order.status
+      }</span> Order ${grammerfix} ${order.userName || "Unknown User"}</h6>
       <p>ORDER ID: ${order._id}</p>
       <p class="d-inline-flex gap-1">
         <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
@@ -93,17 +108,18 @@ async function getOrders(statusFilter = null) {
           <span class="text-black">Total Price </span>
           <strong>Rs.${order.totalprice.toFixed(2)}<strong>
         </p>
-          ${order.status === "Pending"
-          ? `<button class="btn btn-success btn-accept" data-id="${order._id}">Accept</button>
+          ${
+            order.status === "Pending"
+              ? `<button class="btn btn-success btn-accept" data-id="${order._id}">Accept</button>
                  <button class="btn btn-danger btn-reject" data-id="${order._id}">Reject</button>`
-          : order.status === "Preparing"
-            ? `<button class="btn btn-success btn-prepared" data-id="${order._id}">Mark as Prepared</button>
+              : order.status === "Preparing"
+              ? `<button class="btn btn-success btn-prepared" data-id="${order._id}">Mark as Prepared</button>
                  <button class="btn btn-danger btn-cancel" data-id="${order._id}">Cancel</button>`
-            : order.status === "Prepared"
+              : order.status === "Prepared"
               ? `<button class="btn btn-success btn-done" data-id="${order._id}">Mark as delivered</button>
                  <button class="btn btn-danger btn-cancel" data-id="${order._id}">Cancel</button>`
               : ``
-        }
+          }
         </div>
       `;
 
@@ -180,9 +196,14 @@ async function getOrders(statusFilter = null) {
       });
     });
   } catch (error) {
+    stopLoading();
     const userOrders = document.querySelector(".order-container");
     userOrders.innerHTML = `<strong>No orders for this stage!</strong>`;
     console.error(error.message);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "An error occurred",
+    });
   }
 }
 
@@ -201,18 +222,55 @@ const navlink = document.querySelectorAll(".nav-link");
 navlink.forEach((tab) => {
   tab.addEventListener("click", (e) => {
     e.preventDefault();
-
+    
     navlink.forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
   });
 });
 
+// Helper function to update order status
+async function updateOrderStatus(orderId, status) {
+  try {
+    status.toLowerCase();
+    loading();
+    await axios.patch(
+      `${baseURL}/admin/order/${orderId}`,
+      { status },
+      {
+        headers: { Authorization: token },
+      }
+    );
+    stopLoading();
+    tostTopEnd.fire({
+      icon: "success",
+      title: `Order ${status.toLowerCase()}`,
+    });
+    // Refresh orders after status update
+
+    document.querySelector(".active").classList.remove("active");
+    const nextdiv = document.querySelector(`[data-stage="${status}"]`);
+    if (nextdiv) nextdiv.classList.add("active");
+    else {
+      document.querySelector(`[data-stage="Pending"]`).classList.add("active");
+    }
+    getOrders(status);
+  } catch (error) {
+    stopLoading();
+    console.error(error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "Failed to update order status",
+    });
+  }
+}
 
 async function getItems(filters = {}) {
   try {
-    const response = await axios.get(`../restaurant-menu.json`);
+    loading();
+    const response = await axios.get(`${baseURL}/menu?q=${filters}`);
     const itemDiv = document.querySelector(".items-container");
     const items = response.data.data;
+    stopLoading();
     // Clear existing items (if any)
     itemDiv.innerHTML = `<h5>items [${items.length}]</h5>`;
 
@@ -232,8 +290,9 @@ async function getItems(filters = {}) {
       <div class="cart-box">
         <p>Available - ${element.available ? "Yes" : "No"}</p>
         <button 
-          class="toggle-button fa fa-toggle-${element.available ? "on" : "off"
-        }">
+          class="toggle-button fa fa-toggle-${
+            element.available ? "on" : "off"
+          }">
         </button>
         <button 
           type="button"
@@ -266,7 +325,12 @@ async function getItems(filters = {}) {
       itemDiv.appendChild(hr);
     });
   } catch (error) {
+    stopLoading();
     console.error(error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "Failed to fetch menu items",
+    });
   }
 }
 
@@ -298,6 +362,10 @@ async function toggleItemAvailability(itemId, newStatus, button) {
     getItems();
   } catch (error) {
     console.error("Failed to toggle availability:", error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "Failed to toggle availability",
+    });
   }
 }
 async function addItem() {
@@ -313,11 +381,11 @@ async function addItem() {
     <input class="price" type="number" placeholder="99" />
     <select class="item-category text-black">
       ${categories
-      .map(
-        (category) =>
-          `<option class="text-black" value="${category}">${category}</option>`
-      )
-      .join("")}
+        .map(
+          (category) =>
+            `<option class="text-black" value="${category}">${category}</option>`
+        )
+        .join("")}
     </select>
   `;
 
@@ -349,13 +417,24 @@ async function addItem() {
       return;
     }
     try {
+      loading();
       const response = await axios.post(`${baseURL}/admin/menu`, payload, {
         headers: { Authorization: token },
       });
+      stopLoading();
       console.log(response);
+      tostTopEnd.fire({
+        icon: "success",
+        title: response?.data?.message || "Dish Added",
+      });
       getItems();
     } catch (error) {
+      stopLoading();
       console.error(error);
+      tostTopEnd.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Failed to Add",
+      });
     }
   });
 }
@@ -371,12 +450,13 @@ async function editItem(item) {
     <input class="price" type="number" placeholder="${item.price}" />
     <select class="item-category text-black">
       ${categories
-      .map(
-        (category) =>
-          `<option class="text-black" value="${category}" ${category === item.category ? "selected" : ""
-          }>${category}</option>`
-      )
-      .join("")}
+        .map(
+          (category) =>
+            `<option class="text-black" value="${category}" ${
+              category === item.category ? "selected" : ""
+            }>${category}</option>`
+        )
+        .join("")}
     </select>
   `;
 
@@ -392,15 +472,26 @@ async function editItem(item) {
     };
 
     try {
+      loading();
       const response = await axios.patch(
         `${baseURL}/admin/menu/${item._id}`,
         payload,
         { headers: { Authorization: token } }
       );
+      stopLoading();
       console.log(response);
+      tostTopEnd.fire({
+        icon: "success",
+        title: response?.data?.message || "Dish updated",
+      });
       getItems();
     } catch (error) {
+      stopLoading();
       console.error(error);
+      tostTopEnd.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Failed to Update",
+      });
     }
   });
 }
@@ -418,15 +509,67 @@ async function removeItem(id) {
     });
 
     if (!result.isConfirmed) return;
+    loading();
 
     const response = await axios.delete(`${baseURL}/admin/menu/${id}`, {
       headers: { Authorization: token },
     });
+    stopLoading();
+    tostTopEnd.fire({
+      icon: "success",
+      title: response?.data?.message || "Dish removed",
+    });
     getItems();
   } catch (error) {
+    stopLoading();
     console.error(error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "Failed to delete",
+    });
   }
 }
+
+const resetMenuButton = document.getElementById("hardrest");
+resetMenuButton.addEventListener("click", async () => {
+  try {
+    const result = await Swal.fire({
+      title: "Reset Menu?",
+      text: "This can't be undone",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+    loading();
+    const response = await axios.post(
+      `${baseURL}/admin/menu/reset`,
+      {},
+      {
+        headers: { Authorization: token },
+      }
+    );
+    stopLoading();
+    console.log(response);
+
+    tostTopEnd.fire({
+      icon: "success",
+      title: response.message || "Menu Rest: OK",
+    });
+    getItems();
+  } catch (error) {
+    stopLoading();
+    console.error(error);
+    tostTopEnd.fire({
+      icon: "error",
+      title: error.response?.data?.message || "Failed to Rest",
+    });
+  }
+});
 
 const search = document.querySelector("#food-search");
 search.addEventListener("input", () => {
@@ -438,4 +581,5 @@ getOrders("Pending");
 getItems();
 
 navbar();
-page_footer()
+page_footer();
+// stopLoading();

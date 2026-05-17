@@ -4,12 +4,19 @@ import {
   cover_page,
   navbar,
   tostTopEnd,
+  tostBottomEnd,
+  cart_counter,
+  loading,
+  stopLoading,
 } from "../utils/utils.js";
 let filters = {};
 async function restaurent_info() {
   try {
-    const response = await axios.get("../restaurant.json");
+    loading();
+    const response = await axios.get(baseURL);
+    stopLoading();
     const restaurantDetails = document.querySelector(".details-container");
+
     const restaurent = response.data.data.restaurantDetails;
     restaurantDetails.innerHTML = `
 <div>
@@ -25,17 +32,20 @@ async function restaurent_info() {
     </div>
     <div class="feature-item">
       <p class="restaurant-features">Home Delivery</p>
-      <p class="feature-value">${restaurent.features.homeDeliveryAvailable ? "Available" : "Unavailable"
+      <p class="feature-value">${
+        restaurent.features.homeDeliveryAvailable ? "Available" : "Unavailable"
       }</p>
     </div>
   </div>
 
   <div class="operating-hours">
     <h3>Operating Hours</h3>
-    <p class="restaurant-operating-hours">Monday to Friday - ${restaurent.operatingHours.mondayToFriday
-      }</p>
-    <p class="restaurant-operating-hours">Weekends - ${restaurent.operatingHours.weekends
-      }</p>
+    <p class="restaurant-operating-hours">Monday to Friday - ${
+      restaurent.operatingHours.mondayToFriday
+    }</p>
+    <p class="restaurant-operating-hours">Weekends - ${
+      restaurent.operatingHours.weekends
+    }</p>
   </div>
 
   <div class="contacts">
@@ -81,6 +91,69 @@ async function restaurent_info() {
       .map((category) => `<span class="category-item">${category}</span>`)
       .join(" ");
 
+    document
+      .querySelector(".category-row > span")
+      .classList.add("categoryselected");
+    const categories = document.querySelectorAll(".category-item");
+    categories.forEach((element) => {
+      element.addEventListener("click", () => {
+        categories.forEach((el) => el.classList.remove("categoryselected"));
+        element.classList.add("categoryselected");
+        restaurent_menu(1, { category: element.textContent });
+      });
+    });
+
+    // filter row
+    const sortbyLTH = document.querySelector(".lowtohigh");
+    sortbyLTH.addEventListener("click", () => {
+      const sortby = document.querySelector(".sortby");
+      sortby.classList.add("selected");
+      filters = { ...filters, price: 1 };
+      restaurent_menu(1, filters);
+    });
+
+    const sortbyHTL = document.querySelector(".hightolow");
+    sortbyHTL.addEventListener("click", () => {
+      const sortby = document.querySelector(".sortby");
+      sortby.classList.add("selected");
+      filters = { ...filters, price: -1 };
+      restaurent_menu(1, filters);
+    });
+
+    const ratingFilter = document.querySelector(".ratingFilter");
+    ratingFilter.addEventListener("click", () => {
+      ratingFilter.classList.add("selected");
+      filters = { ...filters, rating: 4.5 };
+      restaurent_menu(1, filters);
+    });
+
+    const priceBetween = document.querySelector(".pricebetween");
+    priceBetween.addEventListener("click", () => {
+      priceBetween.classList.add("selected");
+      document.querySelector(".pricelessthan").classList.remove("selected");
+      filters = { ...filters, minprice: 150, maxprice: 300 };
+      restaurent_menu(1, filters);
+    });
+
+    const lessThan = document.querySelector(".pricelessthan");
+    lessThan.addEventListener("click", () => {
+      lessThan.classList.add("selected");
+      delete filters.minprice;
+      priceBetween.classList.remove("selected");
+      filters = { ...filters, maxprice: 150 };
+      restaurent_menu(1, filters);
+    });
+
+    const resetFilter = document.querySelector(".reset-item");
+    resetFilter.addEventListener("click", () => {
+      Object.keys(filters).forEach((key) => {
+        delete filters[key];
+      });
+      resetFilter.style.display = "none";
+      const filterBox = document.querySelectorAll(".filter-item");
+      filterBox.forEach((el) => el.classList.remove("selected"));
+      restaurent_menu();
+    });
   } catch (error) {
     console.error(error);
     tostTopEnd.fire({
@@ -90,10 +163,51 @@ async function restaurent_info() {
   }
 }
 
-async function restaurent_menu() {
-  try {
+function addToCart(element, userName, userPhone) {
+  let userCart = JSON.parse(localStorage.getItem("cart")) || {
+    items: [],
+    totalprice: 0,
+    userPhone,
+    userName,
+  };
 
-    const response = await axios.get(`../restaurant-menu.json`);
+  userCart.items.push({ itemid: element._id, item: element, quantity: 1 });
+  console.log(userCart);
+
+  const combinedItems = {};
+  userCart.items.forEach((item) => {
+    const itemid = item.itemid;
+    if (combinedItems[itemid]) {
+      combinedItems[itemid].quantity += item.quantity;
+    } else {
+      combinedItems[itemid] = { ...item };
+    }
+  });
+
+  userCart.items = Object.values(combinedItems);
+  userCart.userName = userName;
+  userCart.userPhone = userPhone;
+  userCart.totalprice = userCart.items.reduce((total, item) => {
+    return total + item.quantity * item.item.price;
+  }, 0);
+
+  userCart.totalprice.toFixed(2);
+
+  localStorage.setItem("cart", JSON.stringify(userCart));
+  cart_counter();
+}
+
+async function restaurent_menu(pagenumber = 1, params = {}) {
+  try {
+    if (Object.keys(filters).length != 0) {
+      const resetFilter = document.querySelector(".reset-item");
+      resetFilter.style.display = "flex";
+    }
+    const finalFilters = { ...filters, ...params };
+    const response = await axios.get(`${baseURL}/menu?page=${pagenumber}`, {
+      params: finalFilters,
+    });
+    if (response.data.data.length == 0) restaurent_menu();
     const menuItems = response.data.data || [];
     console.log(menuItems);
     // group items by category
@@ -147,13 +261,15 @@ async function restaurent_menu() {
         itemDiv.classList.add("item");
         itemDiv.innerHTML = `
           <div class="item-img ">
-            <img src="${element.image}" class="${element.available ? "" : "outofstock"
-          }" alt="${element.name}" width="300px" height="300px" />
+            <img src="${element.image}" class="${
+          element.available ? "" : "outofstock"
+        }" alt="${element.name}" width="300px" height="300px" />
           </div>
           <div class="item-details">
             <h3 class="item-name">${element.name} 
-              <span class="badge rounded-pill text-bg-success">★ ${element.rating
-          }</span>
+              <span class="badge rounded-pill text-bg-success">★ ${
+                element.rating
+              }</span>
             </h3>
             <p class="item-description">
               <abbr title="${element.description}">${element.description}</abbr>
@@ -165,8 +281,9 @@ async function restaurent_menu() {
             <p class="item-price">Rs.${(element.price * 0.8).toFixed(2)}</p>
           </div>
           <div class="cart-box">
-            <button class="${element.available ? "" : "outofstock"
-          } btn-glow cart-button fa fa-cart-plus"></button>
+            <button class="${
+              element.available ? "" : "outofstock"
+            } btn-glow cart-button fa fa-cart-plus"></button>
           </div>
         `;
 
@@ -174,6 +291,17 @@ async function restaurent_menu() {
 
         // Add to Cart Button Click
         cartButton.addEventListener("click", async () => {
+          const token = localStorage.getItem("token");
+
+          // setTimeout(() => {
+          //   if (!token) {
+          //     tostBottomEnd.fire({
+          //       icon: "info",
+          //       title: "logged in as guest",
+          //     });
+          //   }
+          // }, 2000);
+
           if (!element.available) {
             tostTopEnd.fire({
               icon: "error",
@@ -188,7 +316,33 @@ async function restaurent_menu() {
           const userName = getUser?.name || "Guest";
           const userPhone = getUser?.phone || 9876543210;
           console.log(getUser);
+          // user:"{"_id":"673cf537f2519b3d0e6d703f","name":"Aman Raj","email":"amanprajapat322@gmail.com","role":"admin","wishlist":["673cfc303501a61523e5426e"]}"
           addToCart(element, userName, userPhone);
+
+          tostTopEnd.fire({
+            icon: "success",
+            title: "Added to cart",
+          });
+
+          // try {
+          //   const response = await axios.post(
+          //     `${baseURL}/cart`,
+          //     { itemid: element._id, quantity: 1 },
+          //     { headers: { Authorization: token } }
+          //   );
+          //   tostTopEnd.fire({
+          //     icon: "success",
+          //     title: response.data.message,
+          //   });
+          //   cart_counter();
+          //   console.log(response.data);
+          // } catch (error) {
+          //   console.error(error);
+          //   tostTopEnd.fire({
+          //     icon: "error",
+          //     title: error.response?.data?.message || error.name,
+          //   });
+          // }
         });
 
         categoryBody.appendChild(itemDiv);
@@ -229,3 +383,4 @@ cover_page();
 restaurent_info();
 restaurent_menu();
 page_footer();
+cart_counter();
