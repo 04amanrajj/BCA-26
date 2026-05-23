@@ -23,14 +23,12 @@ form.addEventListener("submit", async (e) => {
       errorMessage.style.display = "block";
       return (errorMessage.textContent = "Password didn't match");
     }
-    const role = "user";
     // Send a POST request to the backend
     loading();
     const response = await axios.post(`${baseURL}/user/register`, {
       name,
       email,
       phone,
-      role,
       password,
     });
     console.log(response);
